@@ -16,6 +16,7 @@ public class RegisterController extends HttpServlet {
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+    	request.setCharacterEncoding("UTF-8");
 
         String hoTen = request.getParameter("hoTen");
         String email = request.getParameter("email");
