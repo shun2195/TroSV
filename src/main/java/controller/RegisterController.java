@@ -1,4 +1,3 @@
-// RegisterController.java
 package controller;
 
 import model.bean.TaiKhoan;

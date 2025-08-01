@@ -51,5 +51,6 @@ public class TaiKhoan {
     public void setCccd(String cccd) { this.cccd = cccd; }
     
     public Date getNgayCapCccd() { return ngayCapCccd; }
-    public void setNgayCapCccd(Date ngayCapCccd) { this.ngayCapCccd = ngayCapCccd; }
-}
+    public void setNgayCapCccd(Date ngayCapCccd) { this.ngayCapCccd = ngayCapCccd;
+    }
+    }
