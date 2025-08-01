@@ -151,7 +151,7 @@ public class AdminDAO {
     private LichHen mapResultSetToLichHen(ResultSet rs) throws SQLException {
         LichHen lh = new LichHen();
         lh.setId(rs.getInt("id"));
-        lh.setNgayHen(rs.getTimestamp("ngayHen"));
+        lh.setNgayHen(Date.valueOf("ngayHen"));
         return lh;
     }
 }

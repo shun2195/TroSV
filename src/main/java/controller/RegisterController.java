@@ -5,15 +5,18 @@ import model.bo.TaiKhoanBO;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.*;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.sql.Date;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 
 @WebServlet("/register")
 public class RegisterController extends HttpServlet {
     private TaiKhoanBO taiKhoanBO = new TaiKhoanBO();
 
+    @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
     	request.setCharacterEncoding("UTF-8");
@@ -25,28 +28,8 @@ public class RegisterController extends HttpServlet {
         String soDienThoai = request.getParameter("soDienThoai");
         String gioiTinh = request.getParameter("gioiTinh");
         String vaiTro = request.getParameter("vaiTro");
-
-        String cccd = null;
-        Date ngayCapCccd = null;
-
-        if ("ChuTro".equals(vaiTro)) {
-            cccd = request.getParameter("cccd");
-            String ngayCapStr = request.getParameter("ngayCapCccd");
-            if (ngayCapStr != null && !ngayCapStr.trim().isEmpty()) {
-                try {
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                    ngayCapCccd = sdf.parse(ngayCapStr);
-                } catch (Exception e) {
-                    setErrorAndForward(request, response, "Ngày cấp CCCD không hợp lệ", hoTen, email, soDienThoai, gioiTinh, vaiTro, cccd, ngayCapStr);
-                    return;
-                }
-            }
-        }
-
-        if (!matKhau.equals(xacNhanMatKhau)) {
-            setErrorAndForward(request, response, "Mật khẩu xác nhận không khớp", hoTen, email, soDienThoai, gioiTinh, vaiTro, cccd, null);
-            return;
-        }
+        String cccd = request.getParameter("cccd");
+        String ngayCapStr = request.getParameter("ngayCapCccd");
 
         TaiKhoan taiKhoan = new TaiKhoan();
         taiKhoan.setHoTen(hoTen);
@@ -56,32 +39,38 @@ public class RegisterController extends HttpServlet {
         taiKhoan.setGioiTinh(gioiTinh);
         taiKhoan.setVaiTro(vaiTro);
         taiKhoan.setCccd(cccd);
-        taiKhoan.setNgayCapCccd(ngayCapCccd);
+        
+        try {
+            if (ngayCapStr != null && !ngayCapStr.trim().isEmpty()) {
+                java.util.Date utilDate = new SimpleDateFormat("yyyy-MM-dd").parse(ngayCapStr);
+                taiKhoan.setNgayCapCccd(new java.sql.Date(utilDate.getTime()));
+            }
+        } catch (Exception e) {
+            setErrorAndForward(request, response, "Định dạng ngày cấp không hợp lệ.", taiKhoan, ngayCapStr);
+            return;
+        }
 
-        if (taiKhoanBO.dangKyTaiKhoan(taiKhoan)) {
-            response.sendRedirect("login");
+        String errorMessage = taiKhoanBO.dangKyTaiKhoan(taiKhoan, xacNhanMatKhau);
+
+        if (errorMessage == null) {
+            response.sendRedirect(request.getContextPath() + "/login?success=true");
         } else {
-            setErrorAndForward(request, response, "Đăng ký thất bại. Email đã tồn tại hoặc dữ liệu không hợp lệ", hoTen, email, soDienThoai, gioiTinh, vaiTro, cccd, ngayCapCccd != null ? new SimpleDateFormat("yyyy-MM-dd").format(ngayCapCccd) : null);
+            setErrorAndForward(request, response, errorMessage, taiKhoan, ngayCapStr);
         }
     }
 
+    @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        request.getRequestDispatcher("views/auth/register.jsp").forward(request, response);
+        request.getRequestDispatcher("/views/auth/register.jsp").forward(request, response);
     }
 
     private void setErrorAndForward(HttpServletRequest request, HttpServletResponse response,
-                                    String errorMessage, String hoTen, String email, String soDienThoai,
-                                    String gioiTinh, String vaiTro, String cccd, String ngayCapCccd)
+                                    String errorMessage, TaiKhoan userInput, String ngayCapCccdStr)
             throws ServletException, IOException {
         request.setAttribute("error", errorMessage);
-        request.setAttribute("hoTen", hoTen);
-        request.setAttribute("email", email);
-        request.setAttribute("soDienThoai", soDienThoai);
-        request.setAttribute("gioiTinh", gioiTinh);
-        request.setAttribute("vaiTro", vaiTro);
-        request.setAttribute("cccd", cccd);
-        request.setAttribute("ngayCapCccd", ngayCapCccd);
-        request.getRequestDispatcher("views/auth/register.jsp").forward(request, response);
+        request.setAttribute("userInput", userInput);
+        request.setAttribute("ngayCapCccdStr", ngayCapCccdStr);
+        request.getRequestDispatcher("/views/auth/register.jsp").forward(request, response);
     }
 }

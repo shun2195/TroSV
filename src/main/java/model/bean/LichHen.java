@@ -2,7 +2,6 @@ package model.bean;
 
 import java.sql.Date;
 import java.sql.Time;
-import java.sql.Timestamp;
 
 public class LichHen {
     private int id;
@@ -78,9 +77,4 @@ public class LichHen {
     public void setNguoiThue(TaiKhoan nguoiThue) {
         this.nguoiThue = nguoiThue;
     }
-
-	public void setNgayHen(Timestamp timestamp) {
-		// TODO Auto-generated method stub
-		
-	}
 }
