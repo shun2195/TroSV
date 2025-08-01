@@ -1,6 +1,7 @@
 package model.bean;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.util.List;
 
 public class PhongTro {
 	private int id;
@@ -43,4 +44,15 @@ public class PhongTro {
     public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
     public Timestamp getNgayDang() { return ngayDang; }
     public void setNgayDang(Timestamp ngayDang) { this.ngayDang = ngayDang; }
+ // Thêm thuộc tính mới này cùng với các thuộc tính khác
+    private List<TienIch> dsTienIch;
+
+    // Thêm cặp Getter và Setter này vào cuối file
+    public List<TienIch> getDsTienIch() {
+        return dsTienIch;
+    }
+
+    public void setDsTienIch(List<TienIch> dsTienIch) {
+        this.dsTienIch = dsTienIch;
+    }
 }
