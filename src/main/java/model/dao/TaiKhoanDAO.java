@@ -61,7 +61,7 @@ public class TaiKhoanDAO {
     }
 
     // Cập nhật mật khẩu
-    public void capNhatMatKhau(int id, String matKhauMoi) {
+    public boolean capNhatMatKhau(int id, String matKhauMoi) {
         try (Connection conn = DatabaseConnection.getConnection()) {
             String sql = "UPDATE TaiKhoan SET matKhau = ? WHERE id = ?";
             PreparedStatement ps = conn.prepareStatement(sql);
@@ -71,6 +71,7 @@ public class TaiKhoanDAO {
         } catch (Exception e) {
             e.printStackTrace();
         }
+		return false;
     }
 
     // Ánh xạ ResultSet -> Đối tượng TaiKhoan
