@@ -10,72 +10,10 @@ import java.io.IOException;
 
 @WebServlet("/login")
 public class LoginController extends HttpServlet {
-    private TaiKhoanBO taiKhoanBO = new TaiKhoanBO();
+    private final TaiKhoanBO taiKhoanBO = new TaiKhoanBO();
 
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String action = request.getParameter("action");
-
-        if ("dangNhap".equals(action)) {
-            handleLogin(request, response);
-        }
-    }
-
-    private void handleLogin(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String email = request.getParameter("email");
-        String matKhau = request.getParameter("matKhau");
-        String remember = request.getParameter("remember");
-
-        TaiKhoan user = taiKhoanBO.dangNhap(email, matKhau);
-
-        if (user != null) {
-            HttpSession session = request.getSession();
-            session.setAttribute("user", user);
-
-            if ("on".equals(remember)) {
-                Cookie emailCookie = new Cookie("email", email);
-                emailCookie.setMaxAge(30 * 24 * 60 * 60); // 30 days
-                response.addCookie(emailCookie);
-            } else {
-                // Remove cookie if exists
-                Cookie[] cookies = request.getCookies();
-                if (cookies != null) {
-                    for (Cookie cookie : cookies) {
-                        if ("email".equals(cookie.getName())) {
-                            cookie.setMaxAge(0);
-                            response.addCookie(cookie);
-                            break;
-                        }
-                    }
-                }
-            }
-
-            redirectBasedOnRole(user, response);
-        } else {
-            request.setAttribute("error", "Sai email hoặc mật khẩu.");
-            request.getRequestDispatcher("views/auth/login.jsp").forward(request, response);
-        }
-    }
-
-    private void redirectBasedOnRole(TaiKhoan user, HttpServletResponse response) throws IOException {
-        switch (user.getVaiTro()) {
-            case "Admin":
-                response.sendRedirect("views/admin/adminDashboard.jsp");
-                break;
-            case "ChuTro":
-                response.sendRedirect("views/chu_tro/dashboard.jsp");
-                break;
-            case "NguoiThue":
-                response.sendRedirect("views/nguoi_thue/dashboard.jsp");
-                break;
-            default:
-                response.sendRedirect("index.jsp");
-        }
-    }
-
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             for (Cookie cookie : cookies) {
@@ -85,6 +23,45 @@ public class LoginController extends HttpServlet {
                 }
             }
         }
-        request.getRequestDispatcher("views/auth/login.jsp").forward(request, response);
+        request.getRequestDispatcher("/views/auth/login.jsp").forward(request, response);
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String action = request.getParameter("action");
+
+        if ("dangNhap".equals(action)) {
+            String email = request.getParameter("email");
+            String matKhau = request.getParameter("matKhau");
+            String remember = request.getParameter("remember");
+            TaiKhoan user = taiKhoanBO.dangNhap(email, matKhau);
+
+            if (user != null) {
+                HttpSession session = request.getSession();
+                session.setAttribute("user", user);
+
+                String role = user.getVaiTro();
+                String contextPath = request.getContextPath();
+
+                switch (role) {
+                    case "Admin":
+                        response.sendRedirect(contextPath + "/views/admin/adminDashboard.jsp");
+                        break;
+                    case "ChuTro":
+                        response.sendRedirect(contextPath + "/views/chu_tro/dashboard.jsp");
+                        break;
+                    case "NguoiThue":
+                        response.sendRedirect(contextPath + "/views/nguoi_thue/nguoiThueDashboard.jsp");
+                        break;
+                    default:
+                        response.sendRedirect(contextPath + "/index.jsp");
+                }
+            } else {
+                request.setAttribute("error", "Email hoặc mật khẩu không chính xác.");
+                request.getRequestDispatcher("/views/auth/login.jsp").forward(request, response);
+            }
+        } else {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+        }
     }
 }
