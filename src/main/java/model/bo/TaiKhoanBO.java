@@ -10,17 +10,26 @@ public class TaiKhoanBO {
         if (!validateTaiKhoan(taiKhoan)) {
             return false;
         }
-        
+
         if (emailDaTonTai(taiKhoan.getEmail())) {
             return false;
         }
+
+        taiKhoan.setTrangThai(true);
+        taiKhoan.setDaXacThuc(false);
         
-        // Lưu mật khẩu dạng plain text (không mã hóa)
+        if ("ChuTro".equalsIgnoreCase(taiKhoan.getVaiTro())) {
+            if (taiKhoan.getCccd() != null && !taiKhoan.getCccd().isEmpty()) {
+                if (!taiKhoan.getCccd().matches("^\\d{9}|\\d{12}$")) {
+                    return false;
+                }
+            }
+        }
+
         return taiKhoanDAO.dangKyTaiKhoan(taiKhoan);
     }
 
     public TaiKhoan dangNhap(String email, String matKhau) {
-        // So sánh mật khẩu trực tiếp (không mã hóa)
         TaiKhoan taiKhoan = taiKhoanDAO.timTaiKhoanBangEmail(email);
         if (taiKhoan != null && matKhau.equals(taiKhoan.getMatKhau())) {
             return taiKhoan;
@@ -32,20 +41,18 @@ public class TaiKhoanBO {
         return taiKhoanDAO.timTaiKhoanBangEmail(email);
     }
 
-    public boolean capNhatMatKhau(int id, String matKhauCu, String matKhauMoi) {
-        TaiKhoan taiKhoan = taiKhoanDAO.timTaiKhoanBangId(id);
+    public boolean capNhatMatKhau(String email, String matKhauCu, String matKhauMoi) {
+        TaiKhoan taiKhoan = taiKhoanDAO.timTaiKhoanBangEmail(email);
         if (taiKhoan == null || !matKhauCu.equals(taiKhoan.getMatKhau())) {
             return false;
         }
-        
-        // Cập nhật mật khẩu mới dạng plain text
-        return taiKhoanDAO.capNhatMatKhau(id, matKhauMoi);
+
+        return taiKhoanDAO.capNhatMatKhau(taiKhoan.getId(), matKhauMoi);
     }
 
     public boolean resetMatKhau(String email, String soDienThoai, String matKhauMoi) {
         TaiKhoan taiKhoan = taiKhoanDAO.timTaiKhoanBangEmail(email);
         if (taiKhoan != null && taiKhoan.getSoDienThoai().equals(soDienThoai)) {
-            // Cập nhật mật khẩu mới dạng plain text
             return taiKhoanDAO.capNhatMatKhau(taiKhoan.getId(), matKhauMoi);
         }
         return false;
@@ -56,21 +63,18 @@ public class TaiKhoanBO {
     }
 
     private boolean validateTaiKhoan(TaiKhoan taiKhoan) {
-        // Validate email format
         if (!taiKhoan.getEmail().matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
             return false;
         }
-        
-        // Validate phone number
+
         if (!taiKhoan.getSoDienThoai().matches("^(0|\\+84)[0-9]{9,10}$")) {
             return false;
         }
-        
-        // Validate password strength
+
         if (taiKhoan.getMatKhau().length() < 8) {
             return false;
         }
-        
+
         return true;
     }
 }

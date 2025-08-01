@@ -33,7 +33,6 @@ public class LoginController extends HttpServlet {
             HttpSession session = request.getSession();
             session.setAttribute("user", user);
 
-            // Remember me functionality
             if ("on".equals(remember)) {
                 Cookie emailCookie = new Cookie("email", email);
                 emailCookie.setMaxAge(30 * 24 * 60 * 60); // 30 days
@@ -52,7 +51,6 @@ public class LoginController extends HttpServlet {
                 }
             }
 
-            // Redirect based on role
             redirectBasedOnRole(user, response);
         } else {
             request.setAttribute("error", "Sai email hoặc mật khẩu.");
@@ -78,7 +76,6 @@ public class LoginController extends HttpServlet {
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // Check for remember me cookie
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             for (Cookie cookie : cookies) {
