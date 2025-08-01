@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import model.bean.PhongTro;
 import model.bean.TaiKhoan;
 import javax.servlet.http.HttpSession;
+import model.bo.PhongTroBO;
 
 @WebServlet(name = "PhongTroController", urlPatterns = { "/chu-tro/dang-phong" })
 public class PhongTroController extends HttpServlet {
