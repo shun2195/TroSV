@@ -30,7 +30,7 @@
     </style>
 </head>
 <body>
-    <jsp:include page="../common/header.jsp">
+    <jsp:include page="header.jsp">
         <jsp:param name="active" value="quan-ly-phong"/>
     </jsp:include>
     

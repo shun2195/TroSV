@@ -33,7 +33,6 @@
     <div class="container mt-4">
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
             </ol>
         </nav>
 
