@@ -11,7 +11,7 @@ import java.util.List;
 
 public class LichHenDAO {
 
-    public boolean createLichHen(LichHen lichHen) {
+	public boolean insertLichHen(LichHen lichHen) {
         String sql = "INSERT INTO lichhen (idPhong, idNguoiThue, ngayHen, gioHen, trangThai) VALUES (?, ?, ?, ?, 'ChoDuyet')";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -86,4 +86,23 @@ public class LichHenDAO {
         
         return lh;
     }
+    
+    public int countLichHenByStatusForChuTro(int idChuTro, String trangThai) {
+        String sql = "SELECT COUNT(lh.id) FROM LichHen lh " +
+                     "JOIN PhongTro pt ON lh.idPhong = pt.id " +
+                     "WHERE pt.idChuTro = ? AND lh.trangThai = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, idChuTro);
+            ps.setString(2, trangThai);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+    
 }

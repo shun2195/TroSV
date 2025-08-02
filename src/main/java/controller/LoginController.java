@@ -35,10 +35,13 @@ public class LoginController extends HttpServlet {
             String matKhau = request.getParameter("matKhau");
             String remember = request.getParameter("remember");
             TaiKhoan user = taiKhoanBO.dangNhap(email, matKhau);
-
+            
+          //test
+            System.out.println("Controller nhận được Email: " + email);
+            System.out.println("Controller nhận được Mật khẩu: " + matKhau);
             if (user != null) {
                 HttpSession session = request.getSession();
-                session.setAttribute("user", user);
+                session.setAttribute("account",user);
 
                 String role = user.getVaiTro();
                 String contextPath = request.getContextPath();
@@ -48,10 +51,10 @@ public class LoginController extends HttpServlet {
                         response.sendRedirect(contextPath + "/views/admin/adminDashboard.jsp");
                         break;
                     case "ChuTro":
-                        response.sendRedirect(contextPath + "/views/chu_tro/dashboard.jsp");
+                    	response.sendRedirect(contextPath + "/chu-tro/dashboard");
                         break;
                     case "NguoiThue":
-                        response.sendRedirect(contextPath + "/views/nguoi_thue/nguoiThueDashboard.jsp");
+                    	response.sendRedirect(contextPath + "/danh-sach-phong");
                         break;
                     default:
                         response.sendRedirect(contextPath + "/index.jsp");

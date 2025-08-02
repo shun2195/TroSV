@@ -18,7 +18,7 @@ import model.bo.PhongTroBO;
 import model.bo.TienIchBO;
 
 @WebServlet(name = "PhongTroController", urlPatterns = { "/chu-tro/dang-phong", "/chu-tro/quan-ly-phong",
-		"/chu-tro/xoa-phong", "/chu-tro/sua-phong" })
+		"/chu-tro/xoa-phong", "/chu-tro/sua-phong", "/chu-tro/update-phong" })
 public class PhongTroController extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 
@@ -44,6 +44,7 @@ public class PhongTroController extends HttpServlet {
 		case "/chu-tro/sua-phong":
 	        showEditForm(request, response);
 	        break;
+	    
 		default:
 			response.sendRedirect(request.getContextPath() + "/");
 			break;

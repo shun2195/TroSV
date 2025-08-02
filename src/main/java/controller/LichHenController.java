@@ -27,7 +27,7 @@ public class LichHenController extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
         HttpSession session = request.getSession();
-        TaiKhoan user = (TaiKhoan) session.getAttribute("user");
+        TaiKhoan user = (TaiKhoan) session.getAttribute("account");
 
         if (user == null) {
             response.sendRedirect(request.getContextPath() + "/login");
@@ -67,9 +67,9 @@ public class LichHenController extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
         HttpSession session = request.getSession();
-        TaiKhoan user = (TaiKhoan) session.getAttribute("user");
+        TaiKhoan account = (TaiKhoan) session.getAttribute("account");
 
-        if (user == null) {
+        if (account == null) {
             response.sendRedirect(request.getContextPath() + "/login");
             return;
         }
@@ -83,10 +83,10 @@ public class LichHenController extends HttpServlet {
         try {
             switch (action) {
                 case "datLich":
-                    handleDatLich(request, response, user);
+                    handleDatLich(request, response, account);
                     break;
                 case "capNhatTrangThai":
-                    handleCapNhatTrangThai(request, response, user);
+                    handleCapNhatTrangThai(request, response, account);
                     break;
                 default:
                     response.sendRedirect(request.getContextPath() + "/");
@@ -107,7 +107,7 @@ public class LichHenController extends HttpServlet {
         }
         List<LichHen> danhSachLichHen = lichHenBO.layLichHenChoChuTro(user.getId());
         request.setAttribute("danhSachLichHen", danhSachLichHen);
-        request.getRequestDispatcher("/views/chutro/quanLyLichHen.jsp").forward(request, response);
+        request.getRequestDispatcher("/views/chu_tro/lichHenNhan.jsp").forward(request, response);
     }
 
     private void showDatLichFormPage(HttpServletRequest request, HttpServletResponse response, TaiKhoan user) throws ServletException, IOException {
@@ -146,7 +146,7 @@ public class LichHenController extends HttpServlet {
             lichHen.setNgayHen(ngayHen);
             lichHen.setGioHen(gioHen);
 
-            if (lichHenBO.datLichHen(lichHen)) {
+            if (lichHenBO.insertLichHen(lichHen)) {
                 session.setAttribute("success", "Đặt lịch hẹn thành công! Vui lòng chờ chủ trọ xác nhận.");
             } else {
                 session.setAttribute("error", "Đặt lịch hẹn thất bại. Ngày hoặc giờ không hợp lệ.");

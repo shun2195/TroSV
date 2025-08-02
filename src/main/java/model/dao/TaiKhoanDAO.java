@@ -9,10 +9,27 @@ import java.util.List;
 public class TaiKhoanDAO {
 
     public TaiKhoan kiemTraDangNhap(String email, String matKhau) {
+    	// --- BẮT ĐẦU DEBUG ---
+        System.out.println("--- Bắt đầu kiểm tra đăng nhập trong DAO ---");
+        System.out.println("Email nhận được: [" + email + "]");
+        System.out.println("Mật khẩu nhận được: [" + matKhau + "]");
+        // --- KẾT THÚC DEBUG ---
         TaiKhoan taiKhoan = timTaiKhoanBangEmail(email);
-        if (taiKhoan != null && matKhau.equals(taiKhoan.getMatKhau())) {
-            return taiKhoan;
+        if (taiKhoan != null) {
+            System.out.println("Tìm thấy tài khoản: " + taiKhoan.getHoTen());
+            System.out.println("Mật khẩu trong CSDL: [" + taiKhoan.getMatKhau() + "]");
+            
+            if (matKhau.equals(taiKhoan.getMatKhau())) {
+                System.out.println("==> So sánh mật khẩu THÀNH CÔNG!");
+                return taiKhoan;
+            } else {
+                System.out.println("==> So sánh mật khẩu THẤT BẠI!");
+            }
+        } else {
+            System.out.println("==> Không tìm thấy tài khoản nào với email này.");
         }
+        
+        System.out.println("--- Kết thúc kiểm tra, trả về null ---");
         return null;
     }
     public boolean dangKyTaiKhoan(TaiKhoan tk) {
@@ -64,19 +81,19 @@ public class TaiKhoanDAO {
         return null;
     }
     public TaiKhoan timTaiKhoanBangId(int id) {
-        TaiKhoan taiKhoan = null;
+        TaiKhoan taikhoan = null;
         try (Connection conn = DatabaseConnection.getConnection()) {
-            String sql = "SELECT * FROM TaiKhoan WHERE id = ?";
+            String sql = "SELECT * FROM taikhoan WHERE id = ?";
             PreparedStatement ps = conn.prepareStatement(sql);
             ps.setInt(1, id);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                taiKhoan = mapResultSetToTaiKhoan(rs);
+                taikhoan = mapResultSetToTaiKhoan(rs);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return taiKhoan;
+        return taikhoan;
     }
 
     public boolean capNhatMatKhau(int id, String matKhauMoi) {

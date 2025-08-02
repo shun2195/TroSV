@@ -28,4 +28,16 @@ public class PhongTroBO {
 	public boolean updatePhongTro(PhongTro phong, String[] dsTienIchIds) {
 	    return phongTroDAO.updatePhongTro(phong, dsTienIchIds);
 	}
+	
+	public List<PhongTro> getDanhSachPhongForNguoiThue() {
+	    return phongTroDAO.getDanhSachPhongForNguoiThue();
+	}
+
+	public PhongTro getChiTietPhongById(int id) {
+	    return phongTroDAO.getChiTietPhongById(id);
+	}
+	public List<PhongTro> searchPhongTro(String idPhuongStr, String khoangGiaStr) {
+	    // BO chỉ đơn giản là gọi xuống DAO
+	    return phongTroDAO.searchPhongTro(idPhuongStr, khoangGiaStr);
+	}
 }
