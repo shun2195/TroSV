@@ -67,6 +67,7 @@ public class NguoiThueController extends HttpServlet {
         
         request.setAttribute("dsPhongTro", dsPhongTro);
         request.setAttribute("dsPhuong", dsPhuong);
+        System.out.println("Loggger1" + dsPhongTro + ", Logger2: " + dsPhuong );
         
         request.getRequestDispatcher("/views/nguoi_thue/danhSachPhong.jsp").forward(request, response);
         
@@ -120,7 +121,6 @@ public class NguoiThueController extends HttpServlet {
         lichHen.setIdNguoiThue(nguoiThue.getId());
         lichHen.setNgayHen(ngayHen);
         lichHen.setGioHen(gioHen);
-        // Trạng thái mặc định là 'ChoDuyet' đã được CSDL xử lý
 
         // Gọi BO để lưu
         LichHenBO lichHenBO = new LichHenBO();

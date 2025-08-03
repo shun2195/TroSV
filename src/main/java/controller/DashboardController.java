@@ -20,7 +20,7 @@ public class DashboardController extends HttpServlet {
             throws ServletException, IOException {
         
         HttpSession session = request.getSession();
-        // LƯU Ý: Đảm bảo bạn đang dùng đúng tên biến session ("account" hoặc "user")
+        
         TaiKhoan chuTro = (TaiKhoan) session.getAttribute("account"); 
 
         if (chuTro == null || !"ChuTro".equals(chuTro.getVaiTro())) {

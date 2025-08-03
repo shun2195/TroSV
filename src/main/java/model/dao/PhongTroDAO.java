@@ -1,100 +1,97 @@
 package model.dao;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import model.bean.PhongTro;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
+import javax.servlet.ServletContext;
+import javax.servlet.http.Part;
+import model.bean.HinhAnh;
 import model.bean.Phuong;
+import model.bean.PhongTro;
 import model.bean.TaiKhoan;
 import model.bean.TienIch;
 import model.database.DatabaseConnection;
-import java.util.ArrayList;
-import java.util.List;
 
 public class PhongTroDAO {
-	public boolean insertPhongTro(PhongTro phongTro, String[] dsTienIchIds) {
+	public boolean insertPhongTro(PhongTro phongTro, String[] dsTienIchIds, Collection<Part> fileParts,
+			ServletContext context) {
 		Connection conn = null;
-		PreparedStatement psPhongTro = null;
-		PreparedStatement psPhongTienIch = null;
-		ResultSet generatedKeys = null;
-
-		// Câu lệnh SQL INSERT đã được cập nhật chính xác với các cột của bạn
-		// Không cần thêm trangThai, ngayDang vì chúng có giá trị DEFAULT
-		String sqlPhongTro = "INSERT INTO PhongTro (idChuTro, tieuDe, moTa, gia, giaDien, giaNuoc, phiDichVu, diaChi, idPhuong) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-		String sqlPhongTienIch = "INSERT INTO Phong_TienIch (idPhong, idTienIch) VALUES (?, ?)";
-
+		String sqlPhongTro = "INSERT INTO phongtro (idChuTro, tieuDe, moTa, gia, giaDien, giaNuoc, phiDichVu, diaChi, idPhuong) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		String sqlPhongTienIch = "INSERT INTO phong_tienich (idPhong, idTienIch) VALUES (?, ?)";
+		String sqlHinhAnh = "INSERT INTO hinhanh (idPhong, duongDan) VALUES (?, ?)";
 		try {
 			conn = DatabaseConnection.getConnection();
-			conn.setAutoCommit(false); // Bắt đầu Transaction
-
-			psPhongTro = conn.prepareStatement(sqlPhongTro, Statement.RETURN_GENERATED_KEYS);
-			psPhongTro.setInt(1, phongTro.getIdChuTro());
-			psPhongTro.setString(2, phongTro.getTieuDe());
-			psPhongTro.setString(3, phongTro.getMoTa());
-			psPhongTro.setBigDecimal(4, phongTro.getGia());
-			psPhongTro.setBigDecimal(5, phongTro.getGiaDien());
-			psPhongTro.setBigDecimal(6, phongTro.getGiaNuoc());
-			psPhongTro.setBigDecimal(7, phongTro.getPhiDichVu());
-			psPhongTro.setString(8, phongTro.getDiaChi());
-			psPhongTro.setInt(9, phongTro.getIdPhuong());
-
-			int affectedRows = psPhongTro.executeUpdate();
-
-			if (affectedRows == 0) {
-				conn.rollback();
-				return false;
-			}
-
-			// Lấy ID của phòng trọ vừa được tạo
-			generatedKeys = psPhongTro.getGeneratedKeys();
-			if (generatedKeys.next()) {
-				int idPhongMoi = generatedKeys.getInt(1);
-
-				// Thêm vào bảng Phong_TienIch
-				if (dsTienIchIds != null && dsTienIchIds.length > 0) {
-					psPhongTienIch = conn.prepareStatement(sqlPhongTienIch);
-					for (String idTienIchStr : dsTienIchIds) {
-						psPhongTienIch.setInt(1, idPhongMoi);
-						psPhongTienIch.setInt(2, Integer.parseInt(idTienIchStr));
-						psPhongTienIch.addBatch();
-					}
-					psPhongTienIch.executeBatch();
+			conn.setAutoCommit(false);
+			int idPhongMoi;
+			try (PreparedStatement ps = conn.prepareStatement(sqlPhongTro, Statement.RETURN_GENERATED_KEYS)) {
+				ps.setInt(1, phongTro.getIdChuTro());
+				ps.setString(2, phongTro.getTieuDe());
+				ps.setString(3, phongTro.getMoTa());
+				ps.setBigDecimal(4, phongTro.getGia());
+				ps.setBigDecimal(5, phongTro.getGiaDien());
+				ps.setBigDecimal(6, phongTro.getGiaNuoc());
+				ps.setBigDecimal(7, phongTro.getPhiDichVu());
+				ps.setString(8, phongTro.getDiaChi());
+				ps.setInt(9, phongTro.getIdPhuong());
+				ps.executeUpdate();
+				try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
+					if (generatedKeys.next())
+						idPhongMoi = generatedKeys.getInt(1);
+					else
+						throw new SQLException("Creating room failed, no ID obtained.");
 				}
-			} else {
-				conn.rollback();
-				return false;
 			}
-
-			conn.commit(); // Hoàn thành transaction
+			if (dsTienIchIds != null) {
+				try (PreparedStatement ps = conn.prepareStatement(sqlPhongTienIch)) {
+					for (String idTienIch : dsTienIchIds) {
+						ps.setInt(1, idPhongMoi);
+						ps.setInt(2, Integer.parseInt(idTienIch));
+						ps.addBatch();
+					}
+					ps.executeBatch();
+				}
+			}
+			if (fileParts != null && !fileParts.isEmpty()) {
+				try (PreparedStatement ps = conn.prepareStatement(sqlHinhAnh)) {
+					for (Part filePart : fileParts) {
+						String savedFileName = saveFile(filePart, context);
+						if (savedFileName != null) {
+							ps.setInt(1, idPhongMoi);
+							ps.setString(2, savedFileName);
+							ps.addBatch();
+						}
+					}
+					ps.executeBatch();
+				}
+			}
+			conn.commit();
 			return true;
-
-		} catch (SQLException e) {
-			e.printStackTrace();
-			if (conn != null) {
+		} catch (Exception e) {
+			if (conn != null)
 				try {
 					conn.rollback();
 				} catch (SQLException ex) {
 					ex.printStackTrace();
 				}
-			}
+			e.printStackTrace();
 			return false;
 		} finally {
-			try {
-				if (generatedKeys != null)
-					generatedKeys.close();
-				if (psPhongTro != null)
-					psPhongTro.close();
-				if (psPhongTienIch != null)
-					psPhongTienIch.close();
-				if (conn != null) {
+			if (conn != null)
+				try {
 					conn.setAutoCommit(true);
 					conn.close();
+				} catch (SQLException ex) {
+					ex.printStackTrace();
 				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
 		}
 	}
 
@@ -131,9 +128,8 @@ public class PhongTroDAO {
 
 		try {
 			conn = DatabaseConnection.getConnection();
-			conn.setAutoCommit(false); // Bắt đầu Transaction
+			conn.setAutoCommit(false);
 
-			// Xóa các bảng phụ thuộc trước
 			try (PreparedStatement ps = conn.prepareStatement(sqlDeleteTienIch)) {
 				ps.setInt(1, idPhong);
 				ps.executeUpdate();
@@ -147,17 +143,16 @@ public class PhongTroDAO {
 				ps.executeUpdate();
 			}
 
-			// Cuối cùng, xóa bảng chính
 			try (PreparedStatement ps = conn.prepareStatement(sqlDeletePhong)) {
 				ps.setInt(1, idPhong);
 				ps.setInt(2, idChuTro);
 				int rowsAffected = ps.executeUpdate();
 
 				if (rowsAffected > 0) {
-					conn.commit(); // Lưu tất cả thay đổi
+					conn.commit();
 					return true;
 				} else {
-					conn.rollback(); // Hủy bỏ vì không xóa được (sai id hoặc sai chủ)
+					conn.rollback();
 					return false;
 				}
 			}
@@ -184,11 +179,11 @@ public class PhongTroDAO {
 
 	public PhongTro getPhongTroById(int id) {
 		PhongTro phong = null;
-		String sql = "SELECT * FROM PhongTro WHERE id = ?";
-		String sqlTienIch = "SELECT idTienIch FROM Phong_TienIch WHERE idPhong = ?";
+		String sql = "SELECT * FROM phongtro WHERE id = ?";
+		String sqlTienIch = "SELECT idTienIch FROM phong_tienich WHERE idPhong = ?";
 
 		try (Connection conn = DatabaseConnection.getConnection()) {
-			// Lấy thông tin cơ bản của phòng trọ
+
 			try (PreparedStatement ps = conn.prepareStatement(sql)) {
 				ps.setInt(1, id);
 				ResultSet rs = ps.executeQuery();
@@ -199,26 +194,29 @@ public class PhongTroDAO {
 					phong.setMoTa(rs.getString("moTa"));
 					phong.setDiaChi(rs.getString("diaChi"));
 					phong.setIdPhuong(rs.getInt("idPhuong"));
+
 					phong.setGia(rs.getBigDecimal("gia"));
 					phong.setGiaDien(rs.getBigDecimal("giaDien"));
 					phong.setGiaNuoc(rs.getBigDecimal("giaNuoc"));
 					phong.setPhiDichVu(rs.getBigDecimal("phiDichVu"));
+
 				}
 			}
 
-			// Nếu tìm thấy phòng, lấy danh sách tiện ích của nó
 			if (phong != null) {
 				List<TienIch> dsTienIchCuaPhong = new ArrayList<>();
 				try (PreparedStatement psTienIch = conn.prepareStatement(sqlTienIch)) {
 					psTienIch.setInt(1, id);
 					ResultSet rsTienIch = psTienIch.executeQuery();
+
 					while (rsTienIch.next()) {
 						TienIch tienIch = new TienIch();
 						tienIch.setId(rsTienIch.getInt("idTienIch"));
 						dsTienIchCuaPhong.add(tienIch);
 					}
+
 				}
-				phong.setDsTienIch(dsTienIchCuaPhong); // Giả sử bạn có setter này trong model
+				phong.setDsTienIch(dsTienIchCuaPhong);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -226,17 +224,16 @@ public class PhongTroDAO {
 		return phong;
 	}
 
-	public boolean updatePhongTro(PhongTro phong, String[] dsTienIchIds) {
-		String sqlUpdatePhong = "UPDATE PhongTro SET tieuDe=?, moTa=?, gia=?, giaDien=?, giaNuoc=?, phiDichVu=?, diaChi=?, idPhuong=? WHERE id=?";
-		String sqlDeleteTienIch = "DELETE FROM Phong_TienIch WHERE idPhong = ?";
-		String sqlInsertTienIch = "INSERT INTO Phong_TienIch (idPhong, idTienIch) VALUES (?, ?)";
+	public boolean updatePhongTro(PhongTro phong, String[] dsTienIchIds, Collection<Part> fileParts,
+			ServletContext context) {
 		Connection conn = null;
-
+		String sqlUpdatePhong = "UPDATE phongtro SET tieuDe=?, moTa=?, gia=?, giaDien=?, giaNuoc=?, phiDichVu=?, diaChi=?, idPhuong=? WHERE id=?";
+		String sqlDeleteTienIch = "DELETE FROM phong_tienich WHERE idPhong = ?";
+		String sqlInsertTienIch = "INSERT INTO phong_tienich (idPhong, idTienIch) VALUES (?, ?)";
+		String sqlInsertHinhAnh = "INSERT INTO hinhanh (idPhong, duongDan) VALUES (?, ?)";
 		try {
 			conn = DatabaseConnection.getConnection();
 			conn.setAutoCommit(false);
-
-			// 1. Cập nhật bảng PhongTro
 			try (PreparedStatement ps = conn.prepareStatement(sqlUpdatePhong)) {
 				ps.setString(1, phong.getTieuDe());
 				ps.setString(2, phong.getMoTa());
@@ -249,15 +246,11 @@ public class PhongTroDAO {
 				ps.setInt(9, phong.getId());
 				ps.executeUpdate();
 			}
-
-			// 2. Xóa hết tiện ích cũ
 			try (PreparedStatement ps = conn.prepareStatement(sqlDeleteTienIch)) {
 				ps.setInt(1, phong.getId());
 				ps.executeUpdate();
 			}
-
-			// 3. Thêm lại tiện ích mới
-			if (dsTienIchIds != null && dsTienIchIds.length > 0) {
+			if (dsTienIchIds != null) {
 				try (PreparedStatement ps = conn.prepareStatement(sqlInsertTienIch)) {
 					for (String idTienIch : dsTienIchIds) {
 						ps.setInt(1, phong.getId());
@@ -267,15 +260,27 @@ public class PhongTroDAO {
 					ps.executeBatch();
 				}
 			}
-
+			if (fileParts != null && !fileParts.isEmpty()) {
+				try (PreparedStatement ps = conn.prepareStatement(sqlInsertHinhAnh)) {
+					for (Part filePart : fileParts) {
+						String savedFileName = saveFile(filePart, context);
+						if (savedFileName != null) {
+							ps.setInt(1, phong.getId());
+							ps.setString(2, savedFileName);
+							ps.addBatch();
+						}
+					}
+					ps.executeBatch();
+				}
+			}
 			conn.commit();
 			return true;
-
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			if (conn != null)
 				try {
 					conn.rollback();
 				} catch (SQLException ex) {
+					ex.printStackTrace();
 				}
 			e.printStackTrace();
 			return false;
@@ -285,18 +290,49 @@ public class PhongTroDAO {
 					conn.setAutoCommit(true);
 					conn.close();
 				} catch (SQLException ex) {
+					ex.printStackTrace();
 				}
 		}
+	}
+
+	private String saveFile(Part filePart, ServletContext context) throws IOException {
+		String projectPath = "C:/Users/ADMIN/eclipse-workspace2025/TroSV1";
+		String uploadPath = projectPath + "/src/main/webapp/uploads";
+
+		System.out.println("!!! SERVER ĐANG LƯU FILE VÀO ĐƯỜNG DẪN: " + uploadPath);
+		File uploadDir = new File(uploadPath);
+		if (!uploadDir.exists())
+			uploadDir.mkdir();
+		String originalFileName = null;
+
+		if (filePart != null && filePart.getSubmittedFileName() != null
+				&& !filePart.getSubmittedFileName().trim().isEmpty()) {
+			originalFileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString();
+		}
+		if (originalFileName == null || originalFileName.isEmpty())
+			return null;
+		String fileExtension = "";
+		int i = originalFileName.lastIndexOf('.');
+		if (i > 0)
+			fileExtension = originalFileName.substring(i);
+		String uniqueFileName = UUID.randomUUID().toString() + fileExtension;
+		String filePath = uploadPath + File.separator + uniqueFileName;
+		filePart.write(filePath);
+		System.out.println(filePath);
+		return "uploads/" + uniqueFileName;
 	}
 
 	// Phương thức 1: Lấy danh sách phòng để hiển thị dạng card
 	public List<PhongTro> getDanhSachPhongForNguoiThue() {
 		List<PhongTro> dsPhongTro = new ArrayList<>();
-		String sql = "SELECT pt.id, pt.tieuDe, pt.gia, pt.diaChi, p.tenPhuong FROM PhongTro pt "
-				+ "JOIN Phuong p ON pt.idPhuong = p.id " + "WHERE pt.trangThai = 'ConPhong' ORDER BY pt.ngayDang DESC";
+
+		String sql = "SELECT pt.id, pt.tieuDe, pt.gia, pt.diaChi, p.tenPhuong FROM phongtro pt "
+				+ "JOIN phuong p ON pt.idPhuong = p.id " + "WHERE pt.trangThai = 'ConPhong' ORDER BY pt.ngayDang DESC";
+
 		try (Connection conn = DatabaseConnection.getConnection();
 				PreparedStatement ps = conn.prepareStatement(sql);
 				ResultSet rs = ps.executeQuery()) {
+
 			while (rs.next()) {
 				PhongTro phong = new PhongTro();
 				phong.setId(rs.getInt("id"));
@@ -307,6 +343,11 @@ public class PhongTroDAO {
 				Phuong phuong = new Phuong();
 				phuong.setTenPhuong(rs.getString("tenPhuong"));
 				phong.setPhuong(phuong);
+				System.out.println("---- Đang xử lý phòng ID: " + phong.getId() + " ----");
+
+				// Logic lấy ảnh của bạn đã đúng, giữ nguyên
+				List<HinhAnh> dsAnh = getHinhAnhByPhongId(conn, phong.getId());
+				phong.setDsHinhAnh(dsAnh);
 
 				dsPhongTro.add(phong);
 			}
@@ -365,99 +406,125 @@ public class PhongTroDAO {
 					}
 				}
 				phong.setDsTienIch(dsTienIch);
+				phong.setDsHinhAnh(getHinhAnhByPhongId(conn, phong.getId()));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
 		return phong;
 	}
-	
+
 	public List<PhongTro> searchPhongTro(String idPhuongStr, String khoangGiaStr) {
-	    List<PhongTro> dsPhongTro = new ArrayList<>();
-	    List<Object> params = new ArrayList<>();
-	    
-	    // Bắt đầu với câu SQL cơ bản
-	    StringBuilder sql = new StringBuilder(
-	        "SELECT pt.*, p.tenPhuong FROM PhongTro pt " +
-	        "JOIN Phuong p ON pt.idPhuong = p.id " +
-	        "WHERE pt.trangThai = 'ConPhong'");
+		List<PhongTro> dsPhongTro = new ArrayList<>();
+		List<Object> params = new ArrayList<>();
 
-	    // 1. Nếu người dùng có chọn Phường, thêm điều kiện vào SQL
-	    if (idPhuongStr != null && !idPhuongStr.isEmpty()) {
-	        sql.append(" AND pt.idPhuong = ?");
-	        params.add(Integer.parseInt(idPhuongStr));
-	    }
+		StringBuilder sql = new StringBuilder("SELECT pt.*, p.tenPhuong FROM phongtro pt "
+				+ "JOIN phuong p ON pt.idPhuong = p.id " + "WHERE pt.trangThai = 'ConPhong'");
 
-	    // 2. Nếu người dùng có chọn Khoảng giá, thêm điều kiện vào SQL
-	    if (khoangGiaStr != null && !khoangGiaStr.isEmpty()) {
-	        switch (khoangGiaStr) {
-	            case "1": sql.append(" AND pt.gia < 2000000"); break;
-	            case "2": sql.append(" AND pt.gia BETWEEN 2000000 AND 3000000"); break;
-	            case "3": sql.append(" AND pt.gia BETWEEN 3000000 AND 5000000"); break;
-	            case "4": sql.append(" AND pt.gia > 5000000"); break;
-	        }
-	    }
-	    
-	    // Luôn sắp xếp theo ngày đăng mới nhất
-	    sql.append(" ORDER BY pt.ngayDang DESC");
+		// 1. Nếu người dùng có chọn Phường, thêm điều kiện vào SQL
+		if (idPhuongStr != null && !idPhuongStr.isEmpty()) {
+			sql.append(" AND pt.idPhuong = ?");
+			params.add(Integer.parseInt(idPhuongStr));
+		}
 
-	    try (Connection conn = DatabaseConnection.getConnection();
-	         PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-	        
-	        // Gán các giá trị tham số vào câu lệnh PreparedStatement
-	        for (int i = 0; i < params.size(); i++) {
-	            ps.setObject(i + 1, params.get(i));
-	        }
-	        
-	        ResultSet rs = ps.executeQuery();
-	        while (rs.next()) {
-	            PhongTro phong = new PhongTro();
-	            phong.setId(rs.getInt("id"));
-	            phong.setTieuDe(rs.getString("tieuDe"));
-	            phong.setGia(rs.getBigDecimal("gia"));
-	            phong.setDiaChi(rs.getString("diaChi"));
-	            
-	            Phuong phuong = new Phuong();
-	            phuong.setTenPhuong(rs.getString("tenPhuong"));
-	            phong.setPhuong(phuong);
-	            
-	            dsPhongTro.add(phong);
-	        }
-	    } catch (SQLException e) {
-	        e.printStackTrace();
-	    }
-	    return dsPhongTro;
+		// 2. Nếu người dùng có chọn Khoảng giá, thêm điều kiện vào SQL
+		if (khoangGiaStr != null && !khoangGiaStr.isEmpty()) {
+			switch (khoangGiaStr) {
+			case "1":
+				sql.append(" AND pt.gia < 2000000");
+				break;
+			case "2":
+				sql.append(" AND pt.gia BETWEEN 2000000 AND 3000000");
+				break;
+			case "3":
+				sql.append(" AND pt.gia BETWEEN 3000000 AND 5000000");
+				break;
+			case "4":
+				sql.append(" AND pt.gia > 5000000");
+				break;
+			}
+		}
+
+		// Luôn sắp xếp theo ngày đăng mới nhất
+		sql.append(" ORDER BY pt.ngayDang DESC");
+
+		try (Connection conn = DatabaseConnection.getConnection();
+				PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+
+			// Gán các giá trị tham số vào câu lệnh PreparedStatement
+			for (int i = 0; i < params.size(); i++) {
+				ps.setObject(i + 1, params.get(i));
+			}
+
+			System.out.println(sql);
+			ResultSet rs = ps.executeQuery();
+			while (rs.next()) {
+				PhongTro phong = new PhongTro();
+				phong.setId(rs.getInt("id"));
+				phong.setTieuDe(rs.getString("tieuDe"));
+				phong.setGia(rs.getBigDecimal("gia"));
+				phong.setDiaChi(rs.getString("diaChi"));
+
+				Phuong phuong = new Phuong();
+				phuong.setTenPhuong(rs.getString("tenPhuong"));
+				phong.setPhuong(phuong);
+
+				phong.setDsHinhAnh(getHinhAnhByPhongId(conn, phong.getId()));
+				dsPhongTro.add(phong);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return dsPhongTro;
 	}
-	
+
 	public int countPhongTroByChuTroId(int idChuTro) {
-	    String sql = "SELECT COUNT(id) FROM PhongTro WHERE idChuTro = ?";
-	    try (Connection conn = DatabaseConnection.getConnection();
-	         PreparedStatement ps = conn.prepareStatement(sql)) {
-	        ps.setInt(1, idChuTro);
-	        ResultSet rs = ps.executeQuery();
-	        if (rs.next()) {
-	            return rs.getInt(1);
-	        }
-	    } catch (SQLException e) {
-	        e.printStackTrace();
-	    }
-	    return 0;
+		String sql = "SELECT COUNT(id) FROM PhongTro WHERE idChuTro = ?";
+		try (Connection conn = DatabaseConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+			ps.setInt(1, idChuTro);
+			ResultSet rs = ps.executeQuery();
+			if (rs.next()) {
+				return rs.getInt(1);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return 0;
 	}
-	
+
 	public int countPhongTroByStatus(int idChuTro, String trangThai) {
-	    String sql = "SELECT COUNT(id) FROM PhongTro WHERE idChuTro = ? AND trangThai = ?";
-	    try (Connection conn = DatabaseConnection.getConnection();
-	         PreparedStatement ps = conn.prepareStatement(sql)) {
-	        ps.setInt(1, idChuTro);
-	        ps.setString(2, trangThai);
-	        ResultSet rs = ps.executeQuery();
-	        if (rs.next()) {
-	            return rs.getInt(1);
-	        }
-	    } catch (SQLException e) {
-	        e.printStackTrace();
-	    }
-	    return 0;
+		String sql = "SELECT COUNT(id) FROM PhongTro WHERE idChuTro = ? AND trangThai = ?";
+		try (Connection conn = DatabaseConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+			ps.setInt(1, idChuTro);
+			ps.setString(2, trangThai);
+			ResultSet rs = ps.executeQuery();
+			if (rs.next()) {
+				return rs.getInt(1);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return 0;
+	}
+
+	private List<HinhAnh> getHinhAnhByPhongId(Connection conn, int idPhong) throws SQLException {
+		List<HinhAnh> dsHinhAnh = new ArrayList<>();
+		String sql = "SELECT * FROM hinhanh WHERE idPhong = ?";
+		System.out.println("DAO: Đang tìm ảnh cho phòng ID = " + idPhong + " với câu lệnh: " + sql);
+		try (PreparedStatement ps = conn.prepareStatement(sql)) {
+			ps.setInt(1, idPhong);
+			ResultSet rs = ps.executeQuery();
+			while (rs.next()) {
+				System.out.println("DAO: --> Tìm thấy ảnh: " + rs.getString("duongDan"));
+				HinhAnh anh = new HinhAnh();
+				anh.setId(rs.getInt("id"));
+				anh.setDuongDan(rs.getString("duongDan"));
+				dsHinhAnh.add(anh);
+
+			}
+		}
+		System.out.println("DAO: --> Tổng cộng tìm thấy " + dsHinhAnh.size() + " ảnh cho phòng ID = " + idPhong);
+		return dsHinhAnh;
 	}
 
 }

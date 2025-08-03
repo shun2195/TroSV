@@ -27,4 +27,8 @@ public class LichHenBO {
 	public List<LichHen> layLichHenChoChuTro(int idChuTro) {
 		return lichHenDAO.getLichHenByChuTro(idChuTro);
 	}
+	
+	public List<LichHen> getLichHenByNguoiThueId(int idNguoiThue) {
+	    return lichHenDAO.getLichHenByNguoiThueId(idNguoiThue);
+	}
 }

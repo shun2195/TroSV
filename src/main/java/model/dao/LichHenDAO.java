@@ -105,4 +105,37 @@ public class LichHenDAO {
         return 0;
     }
     
+    public List<LichHen> getLichHenByNguoiThueId(int idNguoiThue) {
+        List<LichHen> dsLichHen = new ArrayList<>();
+        String sql = "SELECT lh.*, pt.tieuDe, pt.diaChi FROM lichhen lh " +
+                     "JOIN phongtro pt ON lh.idPhong = pt.id " +
+                     "WHERE lh.idNguoiThue = ? ORDER BY lh.ngayHen DESC";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setInt(1, idNguoiThue);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                LichHen lh = new LichHen();
+                lh.setId(rs.getInt("id"));
+                lh.setNgayHen(rs.getDate("ngayHen"));
+                lh.setGioHen(rs.getTime("gioHen"));
+                lh.setTrangThai(rs.getString("trangThai"));
+                
+                PhongTro pt = new PhongTro();
+                pt.setId(rs.getInt("idPhong"));
+                pt.setTieuDe(rs.getString("tieuDe"));
+                pt.setDiaChi(rs.getString("diaChi"));
+                lh.setPhongTro(pt);
+                
+                dsLichHen.add(lh);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return dsLichHen;
+    }
+    
 }

@@ -122,21 +122,21 @@ public class AdminController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/admin?action=duyetChuTro");
     }
     private void showAllAccountsPage(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        List<TaiKhoan> list = adminBO.layTatCaTaiKhoan(); // Giả sử bạn có hàm này
+        List<TaiKhoan> list = adminBO.layTatCaTaiKhoan(); 
         request.setAttribute("danhSach", list);
         request.setAttribute("tieuDe", "Tất cả Tài khoản");
         request.getRequestDispatcher("/views/admin/thongke/danhSachTaiKhoan.jsp").forward(request, response);
     }
 
     private void showAllRoomsPage(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        // List<PhongTro> list = adminBO.layTatCaPhongTro(); // Giả sử bạn có hàm này
+        // List<PhongTro> list = adminBO.layTatCaPhongTro(); 
         // request.setAttribute("danhSach", list);
         request.setAttribute("tieuDe", "Tất cả Phòng trọ");
         request.getRequestDispatcher("/views/admin/thongke/danhSachPhongTro.jsp").forward(request, response);
     }
 
     private void showAllAppointmentsPage(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        // List<LichHen> list = adminBO.layTatCaLichHen(); // Giả sử bạn có hàm này
+        // List<LichHen> list = adminBO.layTatCaLichHen();
         // request.setAttribute("danhSach", list);
         request.setAttribute("tieuDe", "Tất cả Lịch hẹn");
         request.getRequestDispatcher("/views/admin/thongke/danhSachLichHen.jsp").forward(request, response);
